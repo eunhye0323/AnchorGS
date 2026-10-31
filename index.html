@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AnchorGS: Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior</title>
+  <meta name="description" content="AnchorGS keeps the geometry reference of a generative sparse-view reconstruction loop (G4Splat) on the real input views in every round: a non-decaying scale-invariant anchor on the real-view chart depth, and generated-view plane targets traced from planes fitted to real-view points.">
+  <meta name="author" content="Eunhye Choi">
+  <meta name="keywords" content="2D Gaussian Splatting, sparse view, surface reconstruction, scale-invariant depth, plane prior, G4Splat, See3D">
+
+  <!-- Open Graph / social preview -->
+  <meta property="og:title" content="AnchorGS: Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior">
+  <meta property="og:description" content="Generated-view depth targets traced from real-view planes and a persistent scale-invariant real-view anchor, in every round of a generative sparse-view reconstruction loop.">
+  <meta property="og:image" content="./static/images/retracegs_teaser_replica2_v4.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" type="image/png" href="./static/images/marking.png">
+
+  <!-- Bulma + plugins + icons (CDN, no build step needed) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.24/dist/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-slider@2.0.5/dist/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.4/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<!-- ===================== HERO / TITLE ===================== -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title"><span style="color:#3273dc">AnchorGS</span>:<br>Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior</h1>
+          <h2 class="subtitle is-4">M.S. Thesis Research</h2>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="https://www.linkedin.com/in/eunhye8348/" target="_blank" rel="noopener">Eunhye Choi</a><sup>1</sup></span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>School of Computing, KAIST&nbsp;&nbsp;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TEASER ===================== -->
+<section class="hero teaser">
+  <div class="teaser-wide">
+    <img src="./static/images/retracegs_teaser_replica2_v4.jpg" alt="Replica scan2, held-out test view from 5 input views: rendered RGB (top), depth (middle) and extracted mesh (bottom) of 2DGS, MAtCha, G4Splat, AnchorGS and GT" class="teaser-img">
+  </div>
+  <div class="container is-max-desktop">
+    <div class="hero-body pt-3">
+      <p class="caption">
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ABSTRACT ===================== -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Generative sparse-view reconstruction uses synthesized views to supplement limited observations, but inaccurate geometric targets can compromise surface reconstruction. In G4Splat, plane refinement combines depth estimates from real and generated views, allowing errors in plane estimation and grouping to propagate through depth supervision and Gaussian initialization. As generated-view depths depend on earlier reconstructions, these errors can persist across successive reconstruction rounds.
+          </p>
+          <p>
+            We propose <b>AnchorGS</b>, which uses the raw chart depths of the real input views as a persistent geometric reference across all reconstruction rounds. For real views, a scale-invariant log-depth loss with a constant weight replaces G4Splat's decaying direct depth loss. For generated views, each plane group observed by the real views is refitted to real-view chart points only, and the generated views' depth targets are traced onto these planes by ray–plane intersection; the same traced depths initialize the Gaussians of groups that pass a plane-fit residual check. The targets are rebuilt in every round, so each round is supervised against real-view geometry rather than against earlier reconstructions.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== METHOD ===================== -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Method</h2>
+        <div class="content has-text-justified">
+          <p>
+            AnchorGS builds on G4Splat's pipeline of Gaussian optimization and view generation. 
+          </p>
+
+          <h4 class="title is-5 mt-5">1. Persistent real-view depth supervision</h4>
+          <p>
+            G4Splat progressively reduces the weight of its depth loss on real views. AnchorGS instead applies a constant-weight, scale-invariant log-depth loss to the chart depth before plane refinement:
+          </p>
+          <p class="has-text-centered">
+            \[ \mathcal{L}_{\mathrm{real}} = \frac{\lambda_{\mathrm{SI}}}{2}\, \operatorname{Var}_{u}\!\left[ \log \hat D(u) - \log D_{\mathrm{raw}}(u) \right], \qquad \lambda_{\mathrm{SI}} = 20. \]
+          </p>
+          <p>
+            Here, \(\hat D\) is the rendered depth and \(D_{\mathrm{raw}}\) is the raw chart depth. This loss maintains supervision on within-view depth structure throughout training while allowing a per-view multiplicative scale difference. Raw chart depth also provides the depth-order target. 
+          </p>
+
+          <h4 class="title is-5 mt-5">2. Real-anchored depth targets for generated views</h4>
+          <p>
+            G4Splat fits global planes using points from both real and generated views. We retain its plane groups but refit eligible planes using only real-view chart points, preventing generated-view depth errors from directly entering these fits.
+          </p>
+          <p>
+            For a fitted plane with unit normal \(\mathbf{n}_g\) and a point \(\mathbf{c}_g\), the target depth in generated view \(j\) is obtained by ray–plane intersection:
+          </p>
+          <p class="has-text-centered">
+            \[ D^{\mathrm{anchor}}_{j}(u) = \frac{\mathbf{n}_g^{\top}\left(\mathbf{c}_g - \mathbf{C}_j\right)}{\mathbf{n}_g^{\top}\, \mathbf{r}_j(u)}, \]
+          </p>
+          <p>
+            where \(\mathbf{C}_j\) is the camera center and \(\mathbf{r}_j(u)\) is the pixel ray, parameterized by camera depth.
+          </p>
+          <p>These targets are used in two ways:</p>
+          <ul>
+            <li><b>Depth supervision.</b> Valid intersections replace the original depth targets within eligible plane masks.</li>
+            <li><b>Gaussian initialization.</b> <li><b>Gaussian initialization.</b> Anchored depths are used only for groups that pass a robust plane-fitting residual check.</li>
+          </ul>
+          <p>
+            Other pixels retain G4Splat's depth targets. Generated-view normal and curvature priors and depth-order targets remain unchanged. Anchored targets are recomputed before each round that includes generated views, using the current plane groups and the fixed real-view chart depths.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== QUANTITATIVE RESULTS ===================== -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Quantitative Results (5 input views)</h2>
+    <p class="fig-label">
+      Reconstruction Quality
+      <span class="metric-note">Chamfer Distance (cm), F-Score (%, within 5 cm), Normal Consistency (%)</span>
+    </p>
+    <div class="table-container">
+      <table class="table results-table">
+        <colgroup><col class="c-label"><col span="3" class="c-grp"><col span="3" class="c-grp"><col span="3" class="c-grp c-ours"></colgroup>
+        <thead>
+          <tr><th rowspan="2">Method</th><th colspan="3">ScanNet++ (6 scenes)</th><th colspan="3">Replica (6 scenes)</th><th colspan="3" class="th-ours">All (12 scenes)</th></tr>
+          <tr>
+            <th>CD&darr;</th><th>F-Score&uarr;</th><th>NC&uarr;</th>
+            <th>CD&darr;</th><th>F-Score&uarr;</th><th>NC&uarr;</th>
+            <th>CD&darr;</th><th>F-Score&uarr;</th><th>NC&uarr;</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2DGS</td><td>12.98</td><td>62.22</td><td>61.04</td><td>10.11</td><td>61.60</td><td>64.36</td><td>11.55</td><td>61.91</td><td>62.70</td></tr>
+          <tr><td>MAtCha</td><td>12.08</td><td>63.12</td><td>75.61</td><td>9.96</td><td>63.14</td><td>82.17</td><td>11.02</td><td>63.13</td><td>78.89</td></tr>
+          <tr><td>G4Splat</td><td>7.25</td><td>62.89</td><td>77.00</td><td>6.16</td><td>68.43</td><td><b>85.96</b></td><td>6.71</td><td>65.66</td><td>81.48</td></tr>
+          <tr class="row-ours"><td><b>AnchorGS (ours)</b></td><td><b>6.18</b></td><td><b>68.19</b></td><td><b>78.33</b></td><td><b>5.89</b></td><td><b>68.58</b></td><td><b>85.96</b></td><td><b>6.04</b></td><td><b>68.39</b></td><td><b>82.15</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fig-label">
+      Rendering Quality
+      <span class="metric-note">PSNR, SSIM, LPIPS</span>
+    </p>
+    <div class="table-container">
+      <table class="table results-table">
+        <colgroup><col class="c-label"><col span="3" class="c-grp"><col span="3" class="c-grp"><col span="3" class="c-grp c-ours"></colgroup>
+        <thead>
+          <tr><th rowspan="2">Method</th><th colspan="3">ScanNet++ (6 scenes)</th><th colspan="3">Replica (6 scenes)</th><th colspan="3" class="th-ours">All (12 scenes)</th></tr>
+          <tr>
+            <th>PSNR&uarr;</th><th>SSIM&uarr;</th><th>LPIPS&darr;</th>
+            <th>PSNR&uarr;</th><th>SSIM&uarr;</th><th>LPIPS&darr;</th>
+            <th>PSNR&uarr;</th><th>SSIM&uarr;</th><th>LPIPS&darr;</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2DGS</td><td>13.66</td><td>0.671</td><td>0.377</td><td>17.87</td><td>0.765</td><td>0.234</td><td>15.76</td><td>0.718</td><td>0.305</td></tr>
+          <tr><td>MAtCha</td><td>13.53</td><td>0.676</td><td>0.352</td><td>17.54</td><td>0.772</td><td>0.217</td><td>15.54</td><td>0.724</td><td>0.285</td></tr>
+          <tr><td>G4Splat</td><td><b>18.70</b></td><td>0.798</td><td>0.303</td><td>24.51</td><td>0.854</td><td><b>0.184</b></td><td>21.61</td><td>0.826</td><td><b>0.244</b></td></tr>
+          <tr class="row-ours"><td><b>AnchorGS (ours)</b></td><td><b>18.70</b></td><td><b>0.799</b></td><td><b>0.302</b></td><td><b>24.63</b></td><td><b>0.855</b></td><td>0.185</td><td><b>21.67</b></td><td><b>0.827</b></td><td><b>0.244</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption caption--note mt-3"><b>Bold</b> indicates the best result for each metric.</p>
+  </div>
+</section>
+
+<!-- ===================== QUALITATIVE RESULTS ===================== -->
+<section class="section" id="videos">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Qualitative Results</h2>
+    <h3 class="title is-5 has-text-centered">Replica scan1 (5 input views)</h3>
+      <div class="cmp-switch">
+        <div class="buttons has-addons is-centered cmp-tabs" role="group" aria-label="Choose what the slider compares">
+          <button type="button" class="button is-small is-selected" aria-pressed="true" data-src="./static/videos/realigngs/replica_scan1_color_G4_vs_Vfull_center360.mp4">Rendered RGB</button>
+          <button type="button" class="button is-small" aria-pressed="false" data-src="./static/videos/realigngs/replica_scan1_normal_G4_vs_Vfull_center360.mp4">Rendered normal</button>
+          <button type="button" class="button is-small" aria-pressed="false" data-src="./static/videos/realigngs/replica_scan1_mesh_gray_G4_vs_Vfull_center360.mp4">Extracted mesh</button>
+        </div>
+        <div class="video-compare-container"><span class="cmp-label cmp-left">G4Splat</span><span class="cmp-label cmp-right">AnchorGS</span><video class="video" loop muted playsinline preload="none" onplay="resizeAndPlay(this)"><source src="./static/videos/realigngs/replica_scan1_color_G4_vs_Vfull_center360.mp4" type="video/mp4"></video><canvas class="videoMerge"></canvas></div>
+        <p class="has-text-centered video-caption">360 degree render video</p>
+      </div>
+  </div>
+</section>
+
+
+<!-- ===================== INTERACTIVE POINT CLOUDS ===================== -->
+<section class="section" id="pointcloud">
+  <div class="container is-max-desktop">
+    <h3 class="title is-5 has-text-centered">Interactive point clouds</h3>
+    <div class="pc-viewer">
+      <div class="buttons has-addons is-centered cmp-tabs pc-scenes" role="group" aria-label="Choose the scene">
+        <button type="button" class="button is-small is-selected" aria-pressed="true" data-base="./static/pointclouds/scannetpp_scan1" data-up="0,0,1" data-cut="2.2">ScanNet++ scan1</button>
+        <button type="button" class="button is-small" aria-pressed="false" data-base="./static/pointclouds/replica_scan2" data-up="0,0,1" data-cut="1.0">Replica scan2</button>
+      </div>
+      <div class="buttons has-addons is-centered cmp-tabs pc-methods" role="group" aria-label="Choose the method">
+        <button type="button" class="button is-small" aria-pressed="false" data-cloud="g4splat">G4Splat</button>
+        <button type="button" class="button is-small is-selected" aria-pressed="true" data-cloud="retracegs">AnchorGS (ours)</button>
+        <button type="button" class="button is-small" aria-pressed="false" data-cloud="gt">GT</button>
+      </div>
+      <div class="pc-canvas-wrap"><canvas class="pc-canvas"></canvas><div class="pc-status">Loading …</div></div>
+      <div class="pc-controls">
+        <label>Point size <input type="range" class="pc-size" min="0.005" max="0.06" step="0.005" value="0.02"></label>
+        <button type="button" class="button is-small is-light pc-reset">Reset view</button>
+      </div>
+      <div class="controls-help">
+        <div class="ctl-group"><div class="ctl-head">Mouse</div>
+          <div class="ctl-grid">
+            <span>Rotate</span><span>drag</span>
+            <span>Zoom</span><span>scroll / pinch</span>
+            <span>Pan</span><span>right-drag</span>
+          </div>
+        </div>
+        <div class="ctl-group"><div class="ctl-head">Keyboard <small>(click the view first)</small></div>
+          <div class="ctl-grid">
+            <span>Move</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>
+            <span>Up / down</span><span><kbd>R</kbd><kbd>F</kbd></span>
+            <span>Turn</span><span><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></span>
+            <span>Faster</span><span>hold <kbd>Shift</kbd></span>
+          </div>
+        </div>
+      </div>      
+    </div>
+  </div>
+</section>
+
+<!-- ===================== INTERACTIVE GAUSSIAN SPLATS ===================== -->
+<section class="section" id="splats">
+  <div class="container is-max-desktop">
+    <h3 class="title is-5 has-text-centered">Interactive Gaussian splats</h3>
+    <div class="gs-viewer">
+      <div class="buttons has-addons is-centered cmp-tabs gs-scenes" role="group" aria-label="Choose the scene">
+        <button type="button" class="button is-small" aria-pressed="false" data-base="./static/splats/scannetpp_scan1" data-up="0.022,0.090,0.996" data-pos="2.39,1.97,1.46" data-look="2.77,3.92,1.27" data-size="93 / 93 MB">ScanNet++ scan1</button>
+        <button type="button" class="button is-small is-selected" aria-pressed="true" data-base="./static/splats/replica_scan2" data-up="-0.010,0.039,0.999" data-pos="-2.40,-0.31,0.30" data-look="-0.40,-0.22,0.32" data-size="67 / 62 MB">Replica scan2</button>
+      </div>
+      <div class="buttons has-addons is-centered cmp-tabs gs-methods" role="group" aria-label="Choose the method">
+        <button type="button" class="button is-small" aria-pressed="false" data-cloud="g4splat">G4Splat</button>
+        <button type="button" class="button is-small is-selected" aria-pressed="true" data-cloud="retracegs">AnchorGS (ours)</button>
+      </div>
+      <div class="gs-canvas-wrap">
+        <div class="gs-root"></div>
+        <div class="gs-overlay">
+          <div class="gs-title"></div>
+          <button type="button" class="button is-link gs-load">Load</button>
+          <div class="gs-progress-text" hidden></div>
+        </div>
+      </div>
+      <div class="controls-help">
+        <div class="ctl-group"><div class="ctl-head">Mouse</div>
+          <div class="ctl-grid">
+            <span>Rotate</span><span>drag</span>
+            <span>Zoom</span><span>scroll / pinch</span>
+            <span>Pan</span><span>right-drag</span>
+          </div>
+        </div>
+        <div class="ctl-group"><div class="ctl-head">Keyboard <small>(click the view first)</small></div>
+          <div class="ctl-grid">
+            <span>Move</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>
+            <span>Up / down</span><span><kbd>R</kbd><kbd>F</kbd></span>
+            <span>Turn</span><span><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></span>
+            <span>Faster</span><span>hold <kbd>Shift</kbd></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== BIBTEX ===================== -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-3">BibTeX</h2>
+    <pre><code>@misc{choi2026retracegs,
+  title   = {AnchorGS: Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior},
+  author  = {Choi, Eunhye},
+  year    = {2026},
+  note    = {M.S. thesis research, School of Computing, KAIST.}
+}</code></pre>
+  </div>
+</section>
+
+<!-- ===================== FOOTER (keep attribution: CC BY-SA 4.0) ===================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            This website is licensed under a
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            This page was built using the
+            <a href="https://github.com/eliahuhorwitz/Academic-project-page-template">Academic Project Page Template</a>,
+            which was adopted from the <a href="https://nerfies.github.io">Nerfies</a> project page.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script src="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.24/dist/js/bulma-carousel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bulma-slider@2.0.5/dist/js/bulma-slider.min.js"></script>
+<script src="./static/js/video_comparison.js"></script>
+<script src="./static/js/video_comparison3.js"></script>
+<script src="./static/js/index.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "@mkkellogg/gaussian-splats-3d": "https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js" } }</script>
+<script type="module" src="./static/js/pointcloud_viewer.js"></script>
+<script type="module" src="./static/js/splat_viewer.js"></script>
+</body>
+</html>

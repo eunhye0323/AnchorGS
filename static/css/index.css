@@ -1,0 +1,242 @@
+/* GuidedVD project page — custom styles on top of Bulma */
+
+body { font-family: 'Google Sans', 'Noto Sans', sans-serif; }
+
+.hero-body { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+
+.publication-title { margin-bottom: 1rem; }
+.publication-authors { margin-top: 0.75rem; }
+.publication-authors .author-block { margin-right: 0.5rem; }
+.publication-authors a { color: #3273dc; text-decoration: none; }
+.publication-authors a:hover { text-decoration: underline; }
+
+.publication-links { margin-top: 1.5rem; }
+.publication-links .link-block { display: inline-block; margin: 0.25rem; }
+.publication-links .button { background-color: #363636; color: #fff; }
+.publication-links .button:hover { background-color: #4a4a4a; }
+
+/* Teaser / figures */
+.teaser { padding-top: 0; }
+.teaser-wide { width: min(1500px, 96vw); margin: 1.5rem auto 0; }   /* teaser figure wider than the text column */
+.teaser-wide .teaser-img { width: 100%; }
+.teaser-img, .method-img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+}
+.method-img { width: 100%; max-width: 900px; height: auto; }
+
+/* Carousel items */
+.results-carousel { overflow: hidden; }
+.results-carousel .item {
+  margin: 0 8px;
+  padding: 6px;
+}
+.results-carousel .item img {
+  width: 100%;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+}
+
+/* Results table: booktabs-style rules, method groups separated, our columns tinted */
+.table-container {               /* centred when it fits, scrolls when wider than the page */
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  text-align: center;
+}
+.results-table {
+  display: inline-table;          /* shrink to content so text-align:center on the container centres it */
+  margin: 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.86rem;
+  color: #363636;
+  background: transparent;
+  border-top: 2px solid #363636;
+  border-bottom: 2px solid #363636;
+}
+.results-table th,
+.results-table td {
+  padding: 0.38em 0.7em;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: center !important;
+  border: 0;
+  background: transparent;
+}
+.results-table thead th {
+  font-weight: 600;
+  color: #363636;
+  border-bottom: 1px solid #b5b5b5;
+}
+.results-table thead tr:first-child th[colspan] {   /* method names over their metric columns */
+  font-size: 0.92rem;
+  border-bottom: 1px solid #b5b5b5;
+}
+.results-table thead tr + tr th {                   /* metric names */
+  font-weight: 500;
+  color: #6b6b6b;
+  font-size: 0.8rem;
+  border-bottom: 1.5px solid #363636;
+}
+.results-table thead tr:only-child th,
+.results-table thead th[rowspan] { border-bottom: 1.5px solid #363636; }
+.results-table tbody tr:hover td { background: rgba(50, 115, 220, 0.04); }
+.results-table tbody + tbody tr:first-child td { border-top: 1.5px solid #363636; }   /* mean rows */
+.results-table td b { color: #111; }
+.results-table col.c-grp { border-left: 1px solid #dbdbdb; }
+.results-table col.c-ours { background: rgba(50, 115, 220, 0.07); }
+.results-table th.th-ours { color: #3273dc; }
+.results-table tr.row-ours td { background: rgba(50, 115, 220, 0.07); font-weight: 600; }
+
+@media screen and (max-width: 768px) {
+  .results-table { font-size: 0.72rem; }
+  .results-table th,
+  .results-table td { padding: 0.28em 0.38em; }
+}
+
+/* BibTeX block */
+#BibTeX pre {
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+/* Baseline vs Ours wipe slider (Ref-NeRF style) */
+.video-compare-container {
+  position: relative;
+  width: 100%;
+  margin: 0.5rem auto 0;
+  cursor: col-resize;
+}
+.video-compare-container .video { width: 100%; height: 0; display: block; }  /* frame source only */
+.video-compare-container .videoMerge {
+  width: 100%; height: auto; display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  background: #000;
+}
+.cmp-label {
+  position: absolute; top: 8px; z-index: 5;
+  background: rgba(0,0,0,0.55); color: #fff;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 0.78rem; font-weight: 600; pointer-events: none;
+}
+.cmp-left { left: 8px; }
+.cmp-right { right: 8px; }
+
+/* 360 orbit video gallery */
+.orbit-video {
+  width: 100%;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  background: #000;
+  display: block;
+}
+.video-caption { margin-top: 0.5rem; font-size: 0.85rem; font-weight: 400; color: #6b6b6b; }
+
+.footer { padding: 2rem 1.5rem; }
+
+/* three-way wipe slider with two handles (video_comparison3.js) */
+.video-compare3 {
+  --cut-left: 33.333%; --cut-right: 66.667%;
+  position: relative; width: 100%; margin: 0.5rem auto 0;
+  touch-action: pan-y; user-select: none;
+}
+/* the <video> is only the frame source; the canvas shows the composite. Keep it in layout at
+   1px so browsers still decode it while it is on screen. */
+.video-compare3 .video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.video-compare3 .videoMerge3 {
+  width: 100%; height: auto; display: block; aspect-ratio: 960 / 544;
+  border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); background: #fff; cursor: col-resize;
+}
+.cmp3-handle {
+  position: absolute; top: 0; bottom: 0; width: 28px; margin-left: -14px; padding: 0;
+  border: 0; background: transparent; cursor: col-resize; z-index: 6; touch-action: none;
+}
+.cmp3-handle[data-handle="left"] { left: var(--cut-left); }
+.cmp3-handle[data-handle="right"] { left: var(--cut-right); }
+.cmp3-handle::before {             /* divider line */
+  content: ""; position: absolute; top: 0; bottom: 0; left: 13px; width: 2px;
+  background: #fff; box-shadow: 0 0 3px rgba(0,0,0,0.45);
+}
+.cmp3-handle::after {              /* grip */
+  content: "\2039\00a0\203A"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #3273dc;
+  font-size: 15px; font-weight: 700; line-height: 30px; text-align: center;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+}
+.cmp3-handle:focus-visible::after { outline: 2px solid #3273dc; outline-offset: 2px; }
+.cmp3-label {
+  position: absolute; top: 8px; z-index: 5; white-space: nowrap;
+  background: rgba(0,0,0,0.55); color: #fff; padding: 2px 8px; border-radius: 4px;
+  font-size: 0.78rem; font-weight: 600; pointer-events: none;
+}
+.cmp3-label--left { left: 8px; }
+.cmp3-label--right { right: 8px; }
+.cmp3-label--middle { left: calc((var(--cut-left) + var(--cut-right)) / 2); transform: translateX(-50%); }
+@media (max-width: 480px) { .cmp3-label { font-size: 0.68rem; padding: 1px 6px; } }
+
+/* mode buttons above a single wipe slider */
+.cmp-switch { max-width: 860px; margin: 0 auto; }
+.cmp-tabs { margin-bottom: 0.5rem !important; }
+.cmp-tabs .button.is-selected { background: #3273dc; border-color: #3273dc; color: #fff; z-index: 1; }
+.cmp-tabs .button:focus-visible { outline: 2px solid #3273dc; outline-offset: 2px; }
+.cmp-switch--wide { max-width: none; }   /* three-way whole-room sliders keep the full column width */
+
+/* Text hierarchy below the section titles: h3.title.is-5 (sub-section) > .fig-label (table / figure label) > .caption (explanatory text) */
+.section h3.title.is-5 { margin-top: 2.5rem; margin-bottom: 1rem; }
+.section h2.title + h3.title.is-5 { margin-top: 0; }
+.fig-label { text-align: center; font-size: 1rem; font-weight: 600; color: #363636; margin: 1.75rem 0 0.6rem; }
+.fig-label .metric-note { display: block; margin-top: 0.15rem; font-size: 0.82rem; font-weight: 400; color: #6b6b6b; }
+.caption { text-align: center; font-size: 0.92rem; line-height: 1.6; color: #4a4a4a; max-width: 52rem; margin: 0 auto 1.25rem; }
+.caption b { color: #363636; }
+.caption.caption--note { font-size: 0.75rem; color: #7a7a7a; }
+
+/* Method: what-changes table */
+.changes-table { width: 100%; margin: 0 auto 0.5rem; font-size: 0.86rem; }
+.changes-table th, .changes-table td { vertical-align: middle; text-align: center; padding: 0.45rem 0.6rem; }
+.changes-table thead th { font-weight: 600; border-bottom: 1.5px solid #363636; }
+.changes-table tbody th { text-align: left; white-space: nowrap; font-weight: 600; }
+.changes-table td { color: #6b6b6b; }
+.changes-table td b { color: #1f4f9c; }
+
+/* Interactive point-cloud viewer */
+.pc-viewer { max-width: 960px; margin: 0 auto; }
+.pc-canvas-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid #e3e3e3; border-radius: 6px; overflow: hidden; background: #fff; }
+.pc-canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; cursor: grab; }
+.pc-canvas:active { cursor: grabbing; }
+.pc-status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 0.4rem 0.9rem; background: rgba(255,255,255,0.92); border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; color: #4a4a4a; }
+.pc-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem 1.5rem; margin-top: 0.6rem; font-size: 0.85rem; color: #4a4a4a; }
+.pc-controls label { display: inline-flex; align-items: center; gap: 0.4rem; }
+.pc-controls input[type=range] { width: 140px; }
+.pc-cut-val { font-variant-numeric: tabular-nums; min-width: 3.6em; }
+.pc-scenes { margin-bottom: 0.35rem; }
+.pc-methods { margin-bottom: 0.6rem; }
+/* Interactive Gaussian-splat viewer */
+.gs-viewer { max-width: 960px; margin: 0 auto; }
+.gs-scenes { margin-bottom: 0.35rem; }
+.gs-methods { margin-bottom: 0.6rem; }
+.gs-canvas-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid #e3e3e3; border-radius: 6px; overflow: hidden; background: #111; }
+.gs-root { position: absolute; inset: 0; }
+.gs-root canvas { width: 100% !important; height: 100% !important; display: block; }
+.gs-overlay { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: rgba(17, 17, 17, 0.92); color: #e8e8e8; }
+.gs-overlay[hidden], .gs-load[hidden], .gs-progress[hidden], .gs-progress-text[hidden] { display: none !important; }
+.gs-title { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; color: #f2f2f2; }
+.gs-load { min-width: 10rem; font-weight: 600; }
+.gs-progress { width: min(60%, 420px); height: 8px; border-radius: 4px; background: rgba(255,255,255,0.18); overflow: hidden; }
+.gs-progress-bar { height: 100%; width: 0; background: #3273dc; border-radius: 4px; transition: width 0.15s linear; }
+.gs-progress-text { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #cfcfcf; }
+/* control legends under the viewers: two small action -> input tables */
+.controls-help { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem 2.5rem; margin: 0.9rem auto 0; font-size: 0.85rem; color: #4a4a4a; }
+.ctl-group { min-width: 12rem; }
+.ctl-head { font-weight: 600; color: #363636; margin-bottom: 0.3rem; }
+.ctl-head small { font-weight: 400; color: #7a7a7a; font-size: 0.85em; }
+.ctl-grid { display: grid; grid-template-columns: auto auto; column-gap: 1rem; row-gap: 0.2rem; align-items: center; }
+.ctl-grid > span:nth-child(odd) { color: #7a7a7a; text-align: right; }
+.ctl-grid > span:nth-child(even) { text-align: left; }
+.controls-help kbd { display: inline-block; min-width: 1.5em; padding: 0 0.4em; margin: 0 0.1em; font: 600 0.78em/1.6 "Google Sans", "Noto Sans", sans-serif; text-align: center; color: #363636; background: #f4f4f4; border: 1px solid #d0d0d0; border-bottom-width: 2px; border-radius: 4px; }
