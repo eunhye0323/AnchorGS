@@ -9,9 +9,11 @@
 //       <div class="gs-overlay"><div class="gs-title"></div><button class="gs-load">Load</button><div class="gs-progress-text"></div></div>
 //     </div>
 //   </div>
-// Nothing is downloaded until Load is pressed (60-95 MB per model); while loading the overlay shows "Loading ..." and the
-// percentage from the loader's onProgress callback (text only, no bar; the library's built-in loading UI is off). Switching the scene or the method disposes the viewer and
-// loads the new file; the camera starts inside the room at the real cameras' mean position.
+// Nothing is downloaded until Load is pressed (60-95 MB per model). The page downloads the file itself and hands the library a
+// blob: URL, because GitHub Pages serves .splat gzip-compressed and the library sizes its buffer from Content-Length (the
+// compressed size), which overflows and fails. Download progress is measured against the true size (data-bytes on the scene
+// button: "<g4splat bytes>,<retracegs bytes>"). Switching the scene or the method disposes the viewer and loads the new file;
+// the camera starts inside the room at the real cameras' mean position.
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import * as THREE from 'three';
 import { attachFlyKeys } from './fly_keys.js';
@@ -34,26 +36,34 @@ function setup(box) {
     title.textContent = scene.textContent + ' — ' + (LABEL[method] || method);
     loadBtn.textContent = 'Load ' + sizeOf();
   }
-  // status = the library's LoaderStatus (not exported by the build): 0 Downloading, 1 Processing, 2 Done
-  function progress(pct, label, status) {
-    const processing = status === 1 || status === 2 || /process|done/i.test(String(status));
-    // the processing phase reports 0 % then 100 % only, so it gets no number
-    ptext.textContent = processing ? 'Preparing splats …' : 'Downloading · ' + Math.round(Math.max(0, Math.min(100, pct || 0))) + '%';
+  function bytesOf() { const b = (scene.dataset.bytes || '').split(',').map(Number); return b.length === 2 ? b[method === 'g4splat' ? 0 : 1] : 0; }
+  async function download(path, total) {       // whole file -> blob: URL (fetch decompresses transparently)
+    const res = await fetch(path); if (!res.ok) throw new Error('HTTP ' + res.status);
+    const reader = res.body.getReader(), chunks = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      chunks.push(value); got += value.length;
+      ptext.textContent = 'Downloading · ' + (total ? Math.min(100, Math.round(got / total * 100)) + '%' : (got / 1e6).toFixed(0) + ' MB');
+    }
+    return URL.createObjectURL(new Blob(chunks));
   }
   async function show() {
     if (loading) return; loading = true;
     if (viewer) { try { await viewer.dispose(); } catch (e) {} viewer = null; root.innerHTML = ''; }
-    overlay.hidden = false; loadBtn.hidden = true; ptext.hidden = false; progress(0, '0%', 0);
+    overlay.hidden = false; loadBtn.hidden = true; ptext.hidden = false; ptext.textContent = 'Downloading · 0%';
     title.textContent = 'Loading ' + (LABEL[method] || method) + ' …';
-    viewer = new GaussianSplats3D.Viewer({
-      rootElement: root, cameraUp: vec(scene.dataset.up || '0,0,1'), initialCameraPosition: vec(scene.dataset.pos), initialCameraLookAt: vec(scene.dataset.look),
-      sharedMemoryForWorkers: false, gpuAcceleratedSort: false, selfDrivenMode: true, useBuiltInControls: true, logLevel: GaussianSplats3D.LogLevel.None,
-    });
-    const path = scene.dataset.base + '_' + method + '.splat';
+    let url = null;
     try {
-      await viewer.addSplatScene(path, { showLoadingUI: false, progressiveLoad: false, splatAlphaRemovalThreshold: 5, format: GaussianSplats3D.SceneFormat.Splat, onProgress: progress });
+      url = await download(scene.dataset.base + '_' + method + '.splat', bytesOf());
+      ptext.textContent = 'Preparing splats …';
+      viewer = new GaussianSplats3D.Viewer({
+        rootElement: root, cameraUp: vec(scene.dataset.up || '0,0,1'), initialCameraPosition: vec(scene.dataset.pos), initialCameraLookAt: vec(scene.dataset.look),
+        sharedMemoryForWorkers: false, gpuAcceleratedSort: false, selfDrivenMode: true, useBuiltInControls: true, logLevel: GaussianSplats3D.LogLevel.None,
+      });
+      await viewer.addSplatScene(url, { showLoadingUI: false, progressiveLoad: false, splatAlphaRemovalThreshold: 5, format: GaussianSplats3D.SceneFormat.Splat });
       viewer.start(); overlay.hidden = true;
-    } catch (e) { idle(); loadBtn.textContent = 'Could not load ' + (LABEL[method] || method) + ' — retry'; }
+    } catch (e) { console.error(e); idle(); loadBtn.textContent = 'Could not load ' + (LABEL[method] || method) + ' — retry'; }
+    if (url) URL.revokeObjectURL(url);
     loading = false;
   }
   loadBtn.addEventListener('click', () => { started = true; show(); });
