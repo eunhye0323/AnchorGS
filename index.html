@@ -11,11 +11,11 @@
   <!-- Open Graph / social preview -->
   <meta property="og:title" content="AnchorGS: Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior">
   <meta property="og:description" content="Generated-view depth targets traced from real-view planes and a persistent scale-invariant real-view anchor, in every round of a generative sparse-view reconstruction loop.">
-  <meta property="og:image" content="./static/images/retracegs_teaser_replica2_v4.jpg">
+  <meta property="og:image" content="./static/images/anchorgs_teaser_replica2.jpg">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
 
-  <link rel="icon" type="image/png" href="./static/images/marking.png">
+  <link rel="icon" type="image/png" href="./static/images/anchor_logo.png">
 
   <!-- Bulma + plugins + icons (CDN, no build step needed) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
@@ -55,7 +55,7 @@
 <!-- ===================== TEASER ===================== -->
 <section class="hero teaser">
   <div class="teaser-wide">
-    <img src="./static/images/retracegs_teaser_replica2_v4.jpg" alt="Replica scan2, held-out test view from 5 input views: rendered RGB (top), depth (middle) and extracted mesh (bottom) of 2DGS, MAtCha, G4Splat, AnchorGS and GT" class="teaser-img">
+    <img src="./static/images/anchorgs_teaser_replica2.jpg" alt="Replica scan2, held-out test view from 5 input views: rendered RGB (top), depth (middle) and extracted mesh (bottom) of 2DGS, MAtCha, G4Splat, AnchorGS and GT" class="teaser-img">
   </div>
   <div class="container is-max-desktop">
     <div class="hero-body pt-3">
@@ -73,10 +73,11 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            Generative sparse-view reconstruction uses synthesized views to supplement limited observations, but inaccurate geometric targets can compromise surface reconstruction. In G4Splat, plane refinement combines depth estimates from real and generated views, allowing errors in plane estimation and grouping to propagate through depth supervision and Gaussian initialization. As generated-view depths depend on earlier reconstructions, these errors can persist across successive reconstruction rounds.
+            Recent sparse-view Gaussian Splatting methods supplement limited input observations with pseudo-views synthesized by generative models. However, inaccurate geometric supervision can degrade surface reconstruction. In particular, G4Splat iteratively refines depth estimates from real and generated views using shared planar constraints to improve reconstruction and novel view synthesis quality. Although the resulting surfaces may appear flat and visually plausible, their positions or orientations can differ from the ground truth. These refined depths guide both depth supervision and Gaussian initialization, allowing geometric errors to persist in the reconstructed surfaces and influence subsequent reconstruction rounds.
           </p>
           <p>
-            We propose <b>AnchorGS</b>, which uses the raw chart depths of the real input views as a persistent geometric reference across all reconstruction rounds. For real views, a scale-invariant log-depth loss with a constant weight replaces G4Splat's decaying direct depth loss. For generated views, each plane group observed by the real views is refitted to real-view chart points only, and the generated views' depth targets are traced onto these planes by ray–plane intersection; the same traced depths initialize the Gaussians of groups that pass a plane-fit residual check. The targets are rebuilt in every round, so each round is supervised against real-view geometry rather than against earlier reconstructions.
+            We propose <b>AnchorGS</b>, a real-view-guided depth refinement method that maintains real-view chart depths as a geometric reference across reconstruction rounds. For real views, AnchorGS applies a scale-invariant log-depth loss to the chart depths before plane refinement, maintaining supervision on relative depth structure while allowing per-view multiplicative scale differences. 
+            For generated views, planes are fitted using only 3D points obtained from real-view chart depths. For each pixel in a generated-view plane mask, a ray is cast from the camera through the pixel, and the depth at which it intersects the fitted plane becomes the depth target. These targets are used for depth supervision when the real-view 3D points lie sufficiently close to the fitted plane. The same depths also determine the initial 3D positions of Gaussians, when the points fit the plane more closely than required for depth supervision.
           </p>
         </div>
       </div>
@@ -122,7 +123,7 @@
           <p>These targets are used in two ways:</p>
           <ul>
             <li><b>Depth supervision.</b> Valid intersections replace the original depth targets within eligible plane masks.</li>
-            <li><b>Gaussian initialization.</b> <li><b>Gaussian initialization.</b> Anchored depths are used only for groups that pass a robust plane-fitting residual check.</li>
+            <li><b>Gaussian initialization.</b> Anchored depths are used only for groups that pass a robust plane-fitting residual check.</li>
           </ul>
           <p>
             Other pixels retain G4Splat's depth targets. Generated-view normal and curvature priors and depth-order targets remain unchanged. Anchored targets are recomputed before each round that includes generated views, using the current plane groups and the fixed real-view chart depths.
@@ -291,7 +292,7 @@
 <section class="section" id="BibTeX">
   <div class="container is-max-desktop content">
     <h2 class="title is-3">BibTeX</h2>
-    <pre><code>@misc{choi2026retracegs,
+    <pre><code>@misc{choi2026anchorgs,
   title   = {AnchorGS: Real-View-Guided Depth Refinement for Sparse-View Gaussian Splatting with a Generative Prior},
   author  = {Choi, Eunhye},
   year    = {2026},
